@@ -12,7 +12,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type task struct {
+// Defined spaces for each Ticket
+type Ticket struct {
 	ID           int       `json:"id"`
 	User         string    `json:"User"`
 	CreationDate time.Time `json:"creationdate"`
@@ -20,10 +21,11 @@ type task struct {
 	Status       string    `json:"Status"`
 }
 
-type allTasks []task
+// global array of all Tickets
+type allTickets []Ticket
 
-// Persistence
-var tasks = allTasks{
+// Starts with an initial Ticket
+var Tickets = allTickets{
 	{
 		ID:           1,
 		User:         "Edinson",
@@ -33,107 +35,99 @@ var tasks = allTasks{
 	},
 }
 
+//index rote has a simple response
 func indexRoute(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Wecome the my GO API!")
+	fmt.Fprintf(w, "Tickets administrator")
 }
 
-func createTask(w http.ResponseWriter, r *http.Request) {
-	var newTask task
+// define a new ticket using the next available ID and the gien data
+func CreateTicket(w http.ResponseWriter, r *http.Request) {
+	var NewTicket Ticket
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		fmt.Fprintf(w, "Insert a Valid Task Data")
+		fmt.Fprintf(w, "Insert a Valid Ticket Data")
 	}
-
-	json.Unmarshal(reqBody, &newTask)
-	newTask.ID = tasks[len(tasks)-1].ID + 1
-	newTask.UpdateDate = time.Now()
-	newTask.CreationDate = time.Now()
-	tasks = append(tasks, newTask)
-
+	json.Unmarshal(reqBody, &NewTicket)
+	NewTicket.ID = Tickets[len(Tickets)-1].ID + 1
+	NewTicket.UpdateDate = time.Now()
+	NewTicket.CreationDate = time.Now()
+	Tickets = append(Tickets, NewTicket)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newTask)
-
+	json.NewEncoder(w).Encode(NewTicket)
 }
 
-func getTasks(w http.ResponseWriter, r *http.Request) {
+// returns all the tickets
+func getTickets(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tasks)
+	json.NewEncoder(w).Encode(Tickets)
 }
 
-func getOneTask(w http.ResponseWriter, r *http.Request) {
+// uses a given ID to return back its information
+func getOneTicket(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	taskID, err := strconv.Atoi(vars["id"])
+	TicketID, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		return
 	}
-
-	for _, task := range tasks {
-		if task.ID == taskID {
+	for _, Ticket := range Tickets {
+		if Ticket.ID == TicketID {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(task)
+			json.NewEncoder(w).Encode(Ticket)
 		}
 	}
 }
 
-func updateTask(w http.ResponseWriter, r *http.Request) {
+// takes an ID to modify its information with the given data
+func updateTicket(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	taskID, err := strconv.Atoi(vars["id"])
-	var updatedTask task
-
+	TicketID, err := strconv.Atoi(vars["id"])
+	var updatedTicket Ticket
 	if err != nil {
 		fmt.Fprintf(w, "Invalid ID")
 	}
-
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		fmt.Fprintf(w, "Please Enter Valid Data")
 	}
-	json.Unmarshal(reqBody, &updatedTask)
-
-	for i, t := range tasks {
-		if t.ID == taskID {
-
-			updatedTask.ID = t.ID
-			updatedTask.CreationDate = t.CreationDate
-			updatedTask.UpdateDate = time.Now()
-			tasks = append(tasks, updatedTask)
-
-			// w.Header().Set("Content-Type", "application/json")
-			// json.NewEncoder(w).Encode(updatedTask)
-			fmt.Fprintf(w, "The task with ID %v has been updated successfully", taskID)
-			tasks = append(tasks[:i], tasks[i+1:]...)
+	json.Unmarshal(reqBody, &updatedTicket)
+	for i, t := range Tickets {
+		if t.ID == TicketID {
+			updatedTicket.ID = t.ID
+			updatedTicket.CreationDate = t.CreationDate
+			updatedTicket.UpdateDate = time.Now()
+			Tickets = append(Tickets, updatedTicket)
+			fmt.Fprintf(w, "The Ticket with ID %v has been updated successfully", TicketID)
+			Tickets = append(Tickets[:i], Tickets[i+1:]...)
 		}
 	}
 
 }
 
-func deleteTask(w http.ResponseWriter, r *http.Request) {
+// find a ticket identified with its ID and constructs the new "alltTickets" without it
+func deleteTicket(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	taskID, err := strconv.Atoi(vars["id"])
-
+	TicketID, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		fmt.Fprintf(w, "Invalid User ID")
 		return
 	}
-
-	for i, t := range tasks {
-		if t.ID == taskID {
-			tasks = append(tasks[:i], tasks[i+1:]...)
-			fmt.Fprintf(w, "The task with ID %v has been remove successfully", taskID)
+	for i, t := range Tickets {
+		if t.ID == TicketID {
+			Tickets = append(Tickets[:i], Tickets[i+1:]...)
+			fmt.Fprintf(w, "The Ticket with ID %v has been removed successfully", TicketID)
 		}
 	}
 }
 
+// Main
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
-
 	router.HandleFunc("/", indexRoute)
-	router.HandleFunc("/tasks/create", createTask).Methods("POST")
-	router.HandleFunc("/tasks", getTasks).Methods("GET")
-	router.HandleFunc("/tasks/{id}", getOneTask).Methods("GET")
-	router.HandleFunc("/tasks/{id}", deleteTask).Methods("DELETE")
-	router.HandleFunc("/tasks/{id}", updateTask).Methods("PUT")
-
+	router.HandleFunc("/Tickets/create", CreateTicket).Methods("POST")
+	router.HandleFunc("/Tickets", getTickets).Methods("GET")
+	router.HandleFunc("/Tickets/{id}", getOneTicket).Methods("GET")
+	router.HandleFunc("/Tickets/{id}", deleteTicket).Methods("DELETE")
+	router.HandleFunc("/Tickets/{id}", updateTicket).Methods("PUT")
 	log.Fatal(http.ListenAndServe(":3000", router))
 }
